@@ -11,36 +11,50 @@ const userRouter = Router();
 userRouter.get('/', async (_req, res): Promise<any> => {
     try{
         const users = await UserRepository.getUsers(_req, res);
-        return users;
-    }catch(err){
-        return res.status(500).json({"msg": "Erro ao buscar usuarios."})
+        return res.status(200).json(users);
+    }catch(err: any){
+        return res.status(err.status).json(err.msg)
     }
     
-    /* const users = await AppDataSource.getRepository(User).find()
-    return res.status(200).json(users); */
 });
-userRouter.get('/:id', async (_req, res): Promise<Response> => {
-    //--- APLICAR LOGICA DO ANDRE
-    const results = await AppDataSource.getRepository(User).findOneBy({
-        id: parseInt(_req.params.id),
-    })
-    return res.send(results)
+userRouter.get('/:id', async (_req, res): Promise<any> => {
+    
+    const { id } = _req.params;
+    try{
+        const user = await UserRepository.getUserById(id)
+        return res.status(200).send(user);
+    }catch(err: any){
+        return res.status(err.status).json(err.msg)
+    }
 });
-userRouter.put('/:id', async (_req, res): Promise<Response> => {
-    //--- APLICAR LOGICA DO ANDRE
+userRouter.put('/:id', async (_req, res): Promise<any> => {
+    try{
+        //--- APLICAR LOGICA DO ANDRE
+        const { id } = _req.params;
+        const { name, email } = _req.body;
 
-    //Verifica existência para edição
-    const user = await AppDataSource.getRepository(User).findOneBy({
-        id: parseInt(_req.params.id),
-    })
-    AppDataSource.getRepository(User).merge(user!, _req.body)
-    const results = await AppDataSource.getRepository(User).save(user!)
-    return res.send(results)
+        if (!name || !email ) {
+            return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+        }
+
+        const userNewData = createUser(name, email);
+
+        const user = await UserRepository.updateUserById(id, userNewData);
+        return res.status(200).json(user);
+    }catch(err: any){
+        return res.status(err.status).json(err.msg);
+    }
 });
 
-userRouter.delete("/:id", async function (req: Request, res: Response) {
-    const results = await AppDataSource.getRepository(User).delete(req.params.id)
-    return res.send(results)
+userRouter.delete("/:id", async (_req, res): Promise<any> => {
+
+    const { id } = _req.params;
+    try{
+        const user = await UserRepository.destroyUser(id);
+        return res.status(200).json(user);
+    }catch(err: any){
+        return res.status(err.status).json(err.msg);
+    }
 })
 
 userRouter.post('/', async (req: Request, res: Response): Promise<any> => {
@@ -57,13 +71,11 @@ userRouter.post('/', async (req: Request, res: Response): Promise<any> => {
         
         // Chame a função do repositório para adicionar um novo usuário
         
-        //const newUser = await UserRepository.postUser(u);
-        const userFounded = await AppDataSource.getRepository(User).create(newUser)
-        const results = await AppDataSource.getRepository(User).save(newUser)
-        return res.send(results)
-        //return res.status(201).json(newUser);
-    } catch (error) {
-        return res.status(500).json({ error: 'Internal Server Error' });
+        const user = await UserRepository.postUser(newUser);
+        
+        return res.status(201).json(user);
+    } catch (err: any) {
+        return res.status(err.status).json(err.msg);
     }
 });
 
